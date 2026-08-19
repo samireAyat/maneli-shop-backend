@@ -56,31 +56,60 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", upload.array("images", 10), async (req, res) => {
+router.post("/", upload.any(), async (req, res) => {
   try {
-    const imageUrls = req.files
-      ? req.files.map((file) => `/uploads/products/${file.filename}`)
-      : [];
+    console.log("========== BODY ==========");
+    console.log(req.body);
+
+    console.log("========== FILES ==========");
+    console.log(req.files);
+    // -------------------------
+    // Variants
+    // -------------------------
+
+    const variants = req.body.Variants ? JSON.parse(req.body.Variants) : [];
+
+    // -------------------------
+    // اتصال تصاویر به Variant
+    // -------------------------
+
+    variants.forEach((variant, index) => {
+      const variantFiles = req.files.filter(
+        (file) => file.fieldname === `variantImages_${index}`,
+      );
+
+      variant.Images = variantFiles.map(
+        (file) => `/uploads/products/${file.filename}`,
+      );
+    });
+
+    // -------------------------
+    // ایجاد محصول
+    // -------------------------
 
     const product = await Product.create({
       Name: req.body.Name,
-      Price: req.body.Price,
-      Description: req.body.Description,
-      Category: req.body.Category,
-      Sizes: req.body.Sizes ? JSON.parse(req.body.Sizes) : [],
-      Colors: req.body.Colors ? JSON.parse(req.body.Colors) : [],
-      Stock: req.body.Stock,
-      Images: imageUrls,
+
+      Price: Number(req.body.Price),
+
+      Description: req.body.Description ?? "",
+
+      Category: req.body.Category ?? "",
+
+      Variants: variants,
     });
 
     res.status(201).json(product);
   } catch (error) {
+    console.error("Create product error:", error);
+
     res.status(400).json({
       message: "خطا در ایجاد محصول",
       error: error.message,
     });
   }
 });
+
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -102,11 +131,9 @@ router.get("/:id", async (req, res) => {
 
 router.put(
   "/:id",
-  upload.array("images", 10),
+  upload.any(),
   async (req, res) => {
-
     try {
-
       const product = await Product.findById(req.params.id);
 
       if (!product) {
@@ -115,72 +142,62 @@ router.put(
         });
       }
 
-
-      // -------------------------
-      // اطلاعات محصول
-      // -------------------------
+      // =========================
+      // اطلاعات اصلی محصول
+      // =========================
 
       product.Name = req.body.Name;
-      product.Price = req.body.Price;
+      product.Price = Number(req.body.Price);
       product.Description = req.body.Description ?? "";
       product.Category = req.body.Category ?? "";
-      product.Stock = req.body.Stock ?? 0;
 
+      // =========================
+      // Variants
+      // =========================
 
-      // -------------------------
-      // Sizes
-      // -------------------------
-
-      product.Sizes = req.body.Sizes
-        ? JSON.parse(req.body.Sizes)
+      const variants = req.body.Variants
+        ? JSON.parse(req.body.Variants)
         : [];
 
+      // =========================
+      // فایل‌های جدید
+      // =========================
 
-      // -------------------------
-      // Colors
-      // -------------------------
+      const files = req.files ?? [];
 
-      product.Colors = req.body.Colors
-        ? JSON.parse(req.body.Colors)
-        : [];
+      variants.forEach((variant, variantIndex) => {
 
-
-      // -------------------------
-      // تصاویر قبلی
-      // -------------------------
-
-      const existingImages = req.body.existingImages
-        ? JSON.parse(req.body.existingImages)
-        : [];
-
-
-      // -------------------------
-      // تصاویر جدید
-      // -------------------------
-
-      const newImages = req.files
-        ? req.files.map(
-            file => `/uploads/products/${file.filename}`
+        // فایل‌های جدید این Variant
+        const newImages = files
+          .filter(
+            file =>
+              file.fieldname === `variantImages_${variantIndex}`
           )
-        : [];
+          .map(
+            file =>
+              `/uploads/products/${file.filename}`
+          );
 
+        // تصاویر قبلی که از فرانت ارسال شده‌اند
+        const existingImages =
+          Array.isArray(variant.Images)
+            ? variant.Images
+            : [];
 
-      // -------------------------
-      // ترکیب تصاویر
-      // -------------------------
+        // ترکیب تصاویر قبلی + جدید
+        variant.Images = [
+          ...existingImages,
+          ...newImages
+        ];
+      });
 
-      product.Images = [
-        ...existingImages,
-        ...newImages
-      ];
+      // =========================
+      // ذخیره Variants
+      // =========================
 
-
-      // -------------------------
-      // ذخیره
-      // -------------------------
+      product.Variants = variants;
 
       await product.save();
-
 
       res.json(product);
 
@@ -197,7 +214,6 @@ router.put(
       });
 
     }
-
   }
 );
 

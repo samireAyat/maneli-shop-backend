@@ -1,5 +1,45 @@
 import mongoose from "mongoose";
 
+const productSizeSchema = new mongoose.Schema(
+  {
+
+    Name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    Stock: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+);
+
+
+const productVariantSchema = new mongoose.Schema(
+  {
+
+    Color: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    Images: {
+      type: [String],
+      default: [],
+    },
+
+    Sizes: {
+      type: [productSizeSchema],
+      default: [],
+    },
+  },
+);
+
+
 const productSchema = new mongoose.Schema(
   {
     Name: {
@@ -20,33 +60,19 @@ const productSchema = new mongoose.Schema(
 
     Category: {
       type: String,
-      required: false,
+      default: "",
     },
 
-    Images: {
-      type: [String],
+    Variants: {
+      type: [productVariantSchema],
       default: [],
-    },
-
-    Sizes: {
-      type: [String],
-      default: [],
-    },
-
-    Colors: {
-      type: [String],
-      default: [],
-    },
-
-    Stock: {
-      type: Number,
-      default: 0,
     },
   },
   {
     timestamps: true,
-  },
+  }
 );
+
 
 const Product = mongoose.model("Product", productSchema);
 

@@ -2,7 +2,10 @@ import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import productRoutes from "./routes/productRoutes.js";
+import jwt from "jsonwebtoken";
+import authRoutes from "./routes/authRoutes.js";
 import cors from "cors";
+import cartRoutes from "./routes/cartRoutes.js";
 
 dotenv.config();
 
@@ -10,14 +13,17 @@ const app = express();
 app.use(
   cors({
     origin: "http://localhost:4200",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS" , "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
+
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 app.use("/api/products", productRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/cart", cartRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI)
