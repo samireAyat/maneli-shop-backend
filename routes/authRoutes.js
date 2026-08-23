@@ -7,7 +7,9 @@ const router = express.Router();
 
 router.post("/register", async (req, res) => {
   try {
+
     const { Name, Email, Password, Role } = req.body;
+    console.log("REQ BODY:", req.body);
 
     // بررسی اطلاعات ارسالی
     if (!Name || !Email || !Password) {

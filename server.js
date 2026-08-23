@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import authRoutes from "./routes/authRoutes.js";
 import cors from "cors";
 import cartRoutes from "./routes/cartRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/addresses", addressRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI)

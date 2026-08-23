@@ -371,4 +371,67 @@ router.patch("/items", authMiddleware, async (req, res) => {
 
 });
 
+// =========================
+// Remove Cart Item
+// =========================
+
+router.delete("/items", authMiddleware, async (req, res) => {
+  try {
+
+    const {
+      ProductID,
+      VariantID,
+      SizeID
+    } = req.body;
+
+    if (!ProductID || !VariantID || !SizeID) {
+      return res.status(400).json({
+        message: "محصول، رنگ و سایز الزامی هستند"
+      });
+    }
+
+    const cart = await Cart.findOne({
+      UserID: req.user.id
+    });
+
+    if (!cart) {
+      return res.status(404).json({
+        message: "سبد خرید پیدا نشد"
+      });
+    }
+
+    const itemIndex = cart.Items.findIndex(
+      item =>
+        item.ProductID.toString() === ProductID.toString() &&
+        item.VariantID.toString() === VariantID.toString() &&
+        item.SizeID.toString() === SizeID.toString()
+    );
+
+    if (itemIndex === -1) {
+      return res.status(404).json({
+        message: "آیتم سبد خرید پیدا نشد"
+      });
+    }
+
+    cart.Items.splice(itemIndex, 1);
+
+    await cart.save();
+
+    return res.status(200).json({
+      message: "محصول با موفقیت از سبد خرید حذف شد",
+      cart
+    });
+
+  } catch (error) {
+
+    console.error("Remove cart item error:", error);
+
+    return res.status(500).json({
+      message: "خطا در حذف محصول از سبد خرید",
+      error: error.message
+    });
+
+  }
+});
+
 export default router;
