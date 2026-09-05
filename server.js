@@ -13,7 +13,7 @@ dotenv.config();
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:50746",
+    origin: "http://localhost:4200",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS" , "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
@@ -26,6 +26,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/addresses", addressRoutes);
+
 
 mongoose
   .connect(process.env.MONGO_URI)
