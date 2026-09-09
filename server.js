@@ -7,13 +7,15 @@ import authRoutes from "./routes/authRoutes.js";
 import cors from "cors";
 import cartRoutes from "./routes/cartRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
+import favoriteRoutes from "./routes/favoriteRoutes.js";
+
 
 dotenv.config();
 
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:4200",
+    origin: "http://localhost:61119",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS" , "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
@@ -26,6 +28,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/addresses", addressRoutes);
+app.use("/api/favorite", favoriteRoutes);
 
 
 mongoose

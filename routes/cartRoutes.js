@@ -5,17 +5,63 @@ import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// =========================
+// ==================================================
+// Helper: Build Cart Item Response
+// ==================================================
+
+const buildCartItem = (product, item) => {
+  const variant = product.Variants.find(
+    (variant) => variant._id.toString() === item.VariantID.toString(),
+  );
+
+  if (!variant) {
+    return null;
+  }
+
+  const size = variant.Sizes.find(
+    (size) => size._id.toString() === item.SizeID.toString(),
+  );
+
+  if (!size) {
+    return null;
+  }
+
+  return {
+    ID: item._id?.toString(),
+
+    ProductID: product._id,
+    VariantID: variant._id,
+    SizeID: size._id,
+
+    Quantity: item.Quantity,
+
+    Product: {
+      Name: product.Name,
+
+      Price: product.Price,
+    },
+
+    Variant: {
+      Color: variant.Color,
+
+      Image: variant.Images?.[0] || null,
+    },
+
+    Size: {
+      Name: size.Name,
+    },
+  };
+};
+
+// ==================================================
 // Add To Cart
-// =========================
+// ==================================================
 
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { ProductID, VariantID, SizeID, Quantity = 1 } = req.body;
 
-    // -------------------------
     // Validation
-    // -------------------------
 
     if (!ProductID || !VariantID || !SizeID) {
       return res.status(400).json({
@@ -29,9 +75,7 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
     // Product
-    // -------------------------
 
     const product = await Product.findById(ProductID);
 
@@ -41,12 +85,10 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
     // Variant
-    // -------------------------
 
     const variant = product.Variants.find(
-      (variant) => variant._id.toString() === VariantID,
+      (variant) => variant._id.toString() === VariantID.toString(),
     );
 
     if (!variant) {
@@ -55,11 +97,11 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
     // Size
-    // -------------------------
 
-    const size = variant.Sizes.find((size) => size._id.toString() === SizeID);
+    const size = variant.Sizes.find(
+      (size) => size._id.toString() === SizeID.toString(),
+    );
 
     if (!size) {
       return res.status(404).json({
@@ -67,46 +109,36 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
     // Stock
-    // -------------------------
 
     if (size.Stock < Quantity) {
       return res.status(400).json({
-        message: "موجودی این سایز کافی نیست",
+        message: "موجودی کافی نیست",
       });
     }
 
-    // -------------------------
     // Find Cart
-    // -------------------------
 
     let cart = await Cart.findOne({
       UserID: req.user.id,
     });
 
-    // اگر Cart وجود نداشت
     if (!cart) {
       cart = new Cart({
         UserID: req.user.id,
+
         Items: [],
       });
     }
 
-    // -------------------------
-    // Existing Item
-    // -------------------------
+    // Check Existing Item
 
     const existingItem = cart.Items.find(
       (item) =>
-        item.ProductID.toString() === ProductID &&
-        item.VariantID === VariantID &&
-        item.SizeID === SizeID,
+        item.ProductID.toString() === ProductID.toString() &&
+        item.VariantID.toString() === VariantID.toString() &&
+        item.SizeID.toString() === SizeID.toString(),
     );
-
-    // -------------------------
-    // Increase Quantity
-    // -------------------------
 
     if (existingItem) {
       const newQuantity = existingItem.Quantity + Number(Quantity);
@@ -118,337 +150,39 @@ router.post("/", authMiddleware, async (req, res) => {
       }
 
       existingItem.Quantity = newQuantity;
-    }
-
-    // -------------------------
-    // Add New Item
-    // -------------------------
-    else {
+    } else {
       cart.Items.push({
         ProductID,
+
         VariantID,
+
         SizeID,
+
         Quantity: Number(Quantity),
       });
     }
 
-    // -------------------------
-    // Save
-    // -------------------------
-
     await cart.save();
-
-    // -------------------------
-    // Response
-    // -------------------------
-
-    res.status(200).json({
-      message: "محصول با موفقیت به سبد خرید اضافه شد",
-
-      cart,
-    });
-  } catch (error) {
-    console.error("Add to cart error:", error);
-
-    res.status(500).json({
-      message: "خطا در افزودن محصول به سبد خرید",
-
-      error: error.message,
-    });
-  }
-});
-
-// =========================
-// Merge Guest Cart
-// =========================
-
-router.post("/merge", authMiddleware, async (req, res) => {
-  try {
-
-    const userID = req.user.id;
-    const guestItems = req.body.Items;
-
-    // -------------------------
-    // Validation
-    // -------------------------
-
-    if (!Array.isArray(guestItems) || guestItems.length === 0) {
-      return res.status(400).json({
-        message: "سبد مهمان خالی است",
-      });
-    }
-
-    // -------------------------
-    // Find / Create Cart
-    // -------------------------
-
-    let cart = await Cart.findOne({
-      UserID: userID,
-    });
-
-    if (!cart) {
-      cart = new Cart({
-        UserID: userID,
-        Items: [],
-      });
-    }
-
-    // -------------------------
-    // Merge Items
-    // -------------------------
-
-    for (const guestItem of guestItems) {
-
-      const {
-        ProductID,
-        VariantID,
-        SizeID,
-      } = guestItem;
-
-      const Quantity = Number(guestItem.Quantity);
-
-      // -------------------------
-      // Item Validation
-      // -------------------------
-
-      if (
-        !ProductID ||
-        !VariantID ||
-        !SizeID ||
-        !Number.isInteger(Quantity) ||
-        Quantity < 1
-      ) {
-        continue;
-      }
-
-      // -------------------------
-      // Product
-      // -------------------------
-
-      const product = await Product.findById(ProductID);
-
-      if (!product) {
-        continue;
-      }
-
-      // -------------------------
-      // Variant
-      // -------------------------
-
-      const variant = product.Variants.find(
-        variant =>
-          variant._id.toString() === VariantID.toString()
-      );
-
-      if (!variant) {
-        continue;
-      }
-
-      // -------------------------
-      // Size
-      // -------------------------
-
-      const size = variant.Sizes.find(
-        size =>
-          size._id.toString() === SizeID.toString()
-      );
-
-      if (!size) {
-        continue;
-      }
-
-      // -------------------------
-      // Existing Item
-      // -------------------------
-
-      const existingItem = cart.Items.find(
-        item =>
-          item.ProductID.toString() === ProductID.toString() &&
-          item.VariantID.toString() === VariantID.toString() &&
-          item.SizeID.toString() === SizeID.toString()
-      );
-
-      // -------------------------
-      // Calculate Final Quantity
-      // -------------------------
-
-      const finalQuantity =
-        (existingItem?.Quantity || 0) + Quantity;
-
-      // -------------------------
-      // Stock Validation
-      // -------------------------
-
-      if (finalQuantity > size.Stock) {
-        return res.status(400).json({
-          message: `موجودی "${product.Title}" برای این سایز کافی نیست`,
-          ProductID,
-          VariantID,
-          SizeID,
-          Stock: size.Stock,
-        });
-      }
-
-      // -------------------------
-      // Update Existing Item
-      // -------------------------
-
-      if (existingItem) {
-
-        existingItem.Quantity = finalQuantity;
-
-      }
-
-      // -------------------------
-      // Add New Item
-      // -------------------------
-
-      else {
-
-        cart.Items.push({
-          ProductID,
-          VariantID,
-          SizeID,
-          Quantity,
-        });
-
-      }
-    }
-
-    // -------------------------
-    // Save
-    // -------------------------
-
-    await cart.save();
-
-    // -------------------------
-    // Response
-    // -------------------------
 
     return res.status(200).json({
-      message: "سبد خرید با موفقیت منتقل شد",
-      cart,
+      message: "محصول به سبد خرید اضافه شد",
+
+      cartId: cart._id,
     });
-
   } catch (error) {
-
-    console.error("Merge cart error:", error);
+    console.error("Add cart error:", error);
 
     return res.status(500).json({
-      message: "خطا در انتقال سبد خرید",
+      message: "خطا در افزودن به سبد خرید",
+
       error: error.message,
     });
   }
 });
 
-// =========================
+// ==================================================
 // Get Cart
-// =========================
-// =========================
-// Get Guest Cart
-// =========================
-
-router.post("/guest", async (req, res) => {
-  try {
-
-    const guestItems = req.body.Items;
-
-    // -------------------------
-    // Validation
-    // -------------------------
-
-    if (!Array.isArray(guestItems)) {
-      return res.status(400).json({
-        message: "Guest cart is invalid",
-      });
-    }
-
-    const items = [];
-
-    // -------------------------
-    // Get Product Details
-    // -------------------------
-
-    for (const item of guestItems) {
-
-      const {
-        ProductID,
-        VariantID,
-        SizeID,
-        Quantity,
-      } = item;
-
-      // -------------------------
-      // Product
-      // -------------------------
-
-      const product = await Product.findById(ProductID);
-
-      if (!product) {
-        continue;
-      }
-
-      // -------------------------
-      // Variant
-      // -------------------------
-
-      const variant = product.Variants.find(
-        variant =>
-          variant._id.toString() === VariantID.toString()
-      );
-
-      if (!variant) {
-        continue;
-      }
-
-      // -------------------------
-      // Size
-      // -------------------------
-
-      const size = variant.Sizes.find(
-        size =>
-          size._id.toString() === SizeID.toString()
-      );
-
-      if (!size) {
-        continue;
-      }
-
-      // -------------------------
-      // Add Complete Item
-      // -------------------------
-
-      items.push({
-        ProductID,
-        VariantID,
-        SizeID,
-        Quantity: Number(Quantity),
-
-        Product: product,
-        Variant: variant,
-        Size: size,
-      });
-    }
-
-    // -------------------------
-    // Response
-    // -------------------------
-
-    return res.status(200).json({
-      Items: items,
-    });
-
-  } catch (error) {
-
-    console.error("Get guest cart error:", error);
-
-    return res.status(500).json({
-      message: "خطا در دریافت سبد مهمان",
-      error: error.message,
-    });
-  }
-});
-
+// ==================================================
 
 router.get("/", authMiddleware, async (req, res) => {
   try {
@@ -459,6 +193,7 @@ router.get("/", authMiddleware, async (req, res) => {
     if (!cart) {
       return res.status(200).json({
         UserID: req.user.id,
+
         Items: [],
       });
     }
@@ -472,37 +207,16 @@ router.get("/", authMiddleware, async (req, res) => {
         continue;
       }
 
-      const variant = product.Variants.find(
-        (variant) => variant._id.toString() === item.VariantID.toString(),
-      );
+      const cartItem = buildCartItem(product, item);
 
-      if (!variant) {
-        continue;
+      if (cartItem) {
+        items.push(cartItem);
       }
-
-      const size = variant.Sizes.find(
-        (size) => size._id.toString() === item.SizeID.toString(),
-      );
-
-      if (!size) {
-        continue;
-      }
-
-      items.push({
-        ID: item._id?.toString(),
-        ProductID: item.ProductID,
-        VariantID: item.VariantID,
-        SizeID: item.SizeID,
-        Quantity: item.Quantity,
-
-        Product: product,
-        Variant: variant,
-        Size: size,
-      });
     }
 
     return res.status(200).json({
       UserID: cart.UserID,
+
       Items: items,
     });
   } catch (error) {
@@ -510,22 +224,65 @@ router.get("/", authMiddleware, async (req, res) => {
 
     return res.status(500).json({
       message: "خطا در دریافت سبد خرید",
+
       error: error.message,
     });
   }
 });
 
-// =========================
-// Update Cart Item
-// =========================
+// ==================================================
+// Get Guest Cart
+// ==================================================
+
+router.post("/guest", async (req, res) => {
+  try {
+    const guestItems = req.body.Items;
+
+    if (!Array.isArray(guestItems)) {
+      return res.status(400).json({
+        message: "سبد خرید مهمان معتبر نیست",
+      });
+    }
+
+    const items = [];
+
+    for (const item of guestItems) {
+      const product = await Product.findById(item.ProductID);
+
+      if (!product) {
+        continue;
+      }
+
+      const cartItem = buildCartItem(product, item);
+
+      if (cartItem) {
+        items.push(cartItem);
+      }
+    }
+
+    return res.status(200).json({
+      Items: items,
+    });
+  } catch (error) {
+    console.error("Guest cart error:", error);
+
+    return res.status(500).json({
+      message: "خطا در دریافت سبد مهمان",
+
+      error: error.message,
+    });
+  }
+});
+
+// ==================================================
+// Update Cart Quantity
+// ==================================================
 
 router.patch("/items", authMiddleware, async (req, res) => {
   try {
     const { ProductID, VariantID, SizeID, Quantity } = req.body;
 
-    // -------------------------
     // Validation
-    // -------------------------
 
     if (!ProductID || !VariantID || !SizeID) {
       return res.status(400).json({
@@ -533,15 +290,13 @@ router.patch("/items", authMiddleware, async (req, res) => {
       });
     }
 
-    if (Quantity < 1) {
+    if (!Number.isInteger(Number(Quantity)) || Quantity < 1) {
       return res.status(400).json({
-        message: "تعداد باید حداقل ۱ باشد",
+        message: "تعداد نامعتبر است",
       });
     }
 
-    // -------------------------
     // Find Cart
-    // -------------------------
 
     const cart = await Cart.findOne({
       UserID: req.user.id,
@@ -553,15 +308,13 @@ router.patch("/items", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
     // Find Item
-    // -------------------------
 
     const item = cart.Items.find(
       (item) =>
-        item.ProductID.toString() === ProductID &&
-        item.VariantID.toString() === VariantID &&
-        item.SizeID.toString() === SizeID,
+        item.ProductID.toString() === ProductID.toString() &&
+        item.VariantID.toString() === VariantID.toString() &&
+        item.SizeID.toString() === SizeID.toString(),
     );
 
     if (!item) {
@@ -570,9 +323,7 @@ router.patch("/items", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
-    // Find Product
-    // -------------------------
+    // Product
 
     const product = await Product.findById(ProductID);
 
@@ -582,12 +333,10 @@ router.patch("/items", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
-    // Find Variant
-    // -------------------------
+    // Variant
 
     const variant = product.Variants.find(
-      (variant) => variant._id.toString() === VariantID,
+      (variant) => variant._id.toString() === VariantID.toString(),
     );
 
     if (!variant) {
@@ -596,11 +345,11 @@ router.patch("/items", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
-    // Find Size
-    // -------------------------
+    // Size
 
-    const size = variant.Sizes.find((size) => size._id.toString() === SizeID);
+    const size = variant.Sizes.find(
+      (size) => size._id.toString() === SizeID.toString(),
+    );
 
     if (!size) {
       return res.status(404).json({
@@ -608,30 +357,25 @@ router.patch("/items", authMiddleware, async (req, res) => {
       });
     }
 
-    // -------------------------
     // Stock
-    // -------------------------
 
-    if (Quantity > size.Stock) {
+    if (Number(Quantity) > size.Stock) {
       return res.status(400).json({
         message: "تعداد انتخابی بیشتر از موجودی است",
+
+        Stock: size.Stock,
       });
     }
 
-    // -------------------------
-    // Update
-    // -------------------------
+    // Update Quantity
 
     item.Quantity = Number(Quantity);
 
     await cart.save();
 
-    // -------------------------
-    // Response
-    // -------------------------
-
     return res.status(200).json({
-      message: "تعداد محصول با موفقیت بروزرسانی شد",
+      message: "تعداد محصول بروزرسانی شد",
+
       item,
     });
   } catch (error) {
@@ -639,14 +383,15 @@ router.patch("/items", authMiddleware, async (req, res) => {
 
     return res.status(500).json({
       message: "خطا در بروزرسانی سبد خرید",
+
       error: error.message,
     });
   }
 });
 
-// =========================
+// ==================================================
 // Remove Cart Item
-// =========================
+// ==================================================
 
 router.delete("/items", authMiddleware, async (req, res) => {
   try {
@@ -668,12 +413,13 @@ router.delete("/items", authMiddleware, async (req, res) => {
       });
     }
 
-    const itemIndex = cart.Items.findIndex(
-      (item) =>
-        item.ProductID.toString() === ProductID.toString() &&
-        item.VariantID.toString() === VariantID.toString() &&
-        item.SizeID.toString() === SizeID.toString(),
-    );
+    const itemIndex = cart.Items.findIndex((item) => {
+      return (
+        String(item.ProductID) === String(ProductID) &&
+        String(item.VariantID) === String(VariantID) &&
+        String(item.SizeID) === String(SizeID)
+      );
+    });
 
     if (itemIndex === -1) {
       return res.status(404).json({
@@ -686,14 +432,16 @@ router.delete("/items", authMiddleware, async (req, res) => {
     await cart.save();
 
     return res.status(200).json({
-      message: "محصول با موفقیت از سبد خرید حذف شد",
-      cart,
+      status: "success",
+
+      message: "محصول از سبد خرید حذف شد",
     });
   } catch (error) {
-    console.error("Remove cart item error:", error);
+    console.error("Delete cart error:", error);
 
     return res.status(500).json({
       message: "خطا در حذف محصول از سبد خرید",
+
       error: error.message,
     });
   }
