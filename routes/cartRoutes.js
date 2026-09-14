@@ -66,12 +66,14 @@ router.post("/", authMiddleware, async (req, res) => {
     if (!ProductID || !VariantID || !SizeID) {
       return res.status(400).json({
         message: "محصول، رنگ و سایز الزامی هستند",
+        Status: 'danger'
       });
     }
 
     if (Quantity < 1) {
       return res.status(400).json({
         message: "تعداد باید حداقل ۱ باشد",
+        Status: 'danger'
       });
     }
 
@@ -82,6 +84,7 @@ router.post("/", authMiddleware, async (req, res) => {
     if (!product) {
       return res.status(404).json({
         message: "محصول پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -94,6 +97,7 @@ router.post("/", authMiddleware, async (req, res) => {
     if (!variant) {
       return res.status(404).json({
         message: "رنگ محصول پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -106,6 +110,7 @@ router.post("/", authMiddleware, async (req, res) => {
     if (!size) {
       return res.status(404).json({
         message: "سایز محصول پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -114,6 +119,7 @@ router.post("/", authMiddleware, async (req, res) => {
     if (size.Stock < Quantity) {
       return res.status(400).json({
         message: "موجودی کافی نیست",
+        Status: 'danger'
       });
     }
 
@@ -146,6 +152,7 @@ router.post("/", authMiddleware, async (req, res) => {
       if (newQuantity > size.Stock) {
         return res.status(400).json({
           message: "تعداد انتخابی بیشتر از موجودی است",
+          Status: 'danger'
         });
       }
 
@@ -166,7 +173,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     return res.status(200).json({
       message: "محصول به سبد خرید اضافه شد",
-
+      Status: 'success',
       cartId: cart._id,
     });
   } catch (error) {
@@ -174,7 +181,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     return res.status(500).json({
       message: "خطا در افزودن به سبد خرید",
-
+      Status: 'danger',
       error: error.message,
     });
   }
@@ -216,7 +223,7 @@ router.get("/", authMiddleware, async (req, res) => {
 
     return res.status(200).json({
       UserID: cart.UserID,
-
+      Status: 'success',
       Items: items,
     });
   } catch (error) {
@@ -224,7 +231,7 @@ router.get("/", authMiddleware, async (req, res) => {
 
     return res.status(500).json({
       message: "خطا در دریافت سبد خرید",
-
+      Status: 'danger',
       error: error.message,
     });
   }
@@ -287,12 +294,14 @@ router.patch("/items", authMiddleware, async (req, res) => {
     if (!ProductID || !VariantID || !SizeID) {
       return res.status(400).json({
         message: "محصول، رنگ و سایز الزامی هستند",
+        Status: 'danger'
       });
     }
 
     if (!Number.isInteger(Number(Quantity)) || Quantity < 1) {
       return res.status(400).json({
         message: "تعداد نامعتبر است",
+        Status: 'danger'
       });
     }
 
@@ -305,6 +314,7 @@ router.patch("/items", authMiddleware, async (req, res) => {
     if (!cart) {
       return res.status(404).json({
         message: "سبد خرید پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -320,6 +330,7 @@ router.patch("/items", authMiddleware, async (req, res) => {
     if (!item) {
       return res.status(404).json({
         message: "آیتم سبد خرید پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -330,10 +341,11 @@ router.patch("/items", authMiddleware, async (req, res) => {
     if (!product) {
       return res.status(404).json({
         message: "محصول پیدا نشد",
+        Status: 'danger'
       });
     }
 
-    // Variant
+    
 
     const variant = product.Variants.find(
       (variant) => variant._id.toString() === VariantID.toString(),
@@ -342,6 +354,7 @@ router.patch("/items", authMiddleware, async (req, res) => {
     if (!variant) {
       return res.status(404).json({
         message: "رنگ محصول پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -354,6 +367,7 @@ router.patch("/items", authMiddleware, async (req, res) => {
     if (!size) {
       return res.status(404).json({
         message: "سایز محصول پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -364,6 +378,7 @@ router.patch("/items", authMiddleware, async (req, res) => {
         message: "تعداد انتخابی بیشتر از موجودی است",
 
         Stock: size.Stock,
+        Status: 'danger'
       });
     }
 
@@ -375,15 +390,15 @@ router.patch("/items", authMiddleware, async (req, res) => {
 
     return res.status(200).json({
       message: "تعداد محصول بروزرسانی شد",
-
       item,
+      Status: 'success'
     });
   } catch (error) {
     console.error("Update cart error:", error);
 
     return res.status(500).json({
       message: "خطا در بروزرسانی سبد خرید",
-
+      Status: 'danger',
       error: error.message,
     });
   }
@@ -410,6 +425,7 @@ router.delete("/items", authMiddleware, async (req, res) => {
     if (!cart) {
       return res.status(404).json({
         message: "سبد خرید پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -424,6 +440,7 @@ router.delete("/items", authMiddleware, async (req, res) => {
     if (itemIndex === -1) {
       return res.status(404).json({
         message: "آیتم سبد خرید پیدا نشد",
+        Status: 'danger'
       });
     }
 
@@ -435,6 +452,7 @@ router.delete("/items", authMiddleware, async (req, res) => {
       status: "success",
 
       message: "محصول از سبد خرید حذف شد",
+      Status: 'success'
     });
   } catch (error) {
     console.error("Delete cart error:", error);
@@ -443,6 +461,7 @@ router.delete("/items", authMiddleware, async (req, res) => {
       message: "خطا در حذف محصول از سبد خرید",
 
       error: error.message,
+      Status: 'danger'
     });
   }
 });

@@ -8,6 +8,8 @@ const authMiddleware = (req, res, next) => {
     if (!authHeader) {
       return res.status(401).json({
         message: "لطفاً وارد حساب کاربری شوید",
+        Status: 'danger',
+        ErorCode:600
       });
     }
 
@@ -17,6 +19,9 @@ const authMiddleware = (req, res, next) => {
     if (parts.length !== 2 || parts[0] !== "Bearer") {
       return res.status(401).json({
         message: "فرمت توکن نامعتبر است",
+        Status: 'danger',
+        ErorCode:601,
+      
       });
     }
 
@@ -39,6 +44,8 @@ const authMiddleware = (req, res, next) => {
 
     return res.status(401).json({
       message: "توکن نامعتبر یا منقضی شده است",
+      Status: 'danger',
+      ErorCode:602
     });
 
   }

@@ -4,15 +4,39 @@ const userSchema = new mongoose.Schema(
   {
     Name: {
       type: String,
-      required: false,
+      required: true,
+      trim: true,
+    },
+
+    LastName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    NationalCode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    PhoneNumber: {
+      type: String,
+      required: true,
       trim: true,
     },
 
     Email: {
       type: String,
-      required: true,
+      required: false,
       unique: true,
       lowercase: true,
+      trim: true,
+    },
+
+    BirthDate: {
+      type: String,
+      required: false,
       trim: true,
     },
 
@@ -26,6 +50,7 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
+
     EmailVerified: {
       type: Boolean,
       default: false,
@@ -43,7 +68,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 const User = mongoose.model("User", userSchema);
