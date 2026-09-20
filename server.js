@@ -29,6 +29,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/favorite", favoriteRoutes);
+app.use("/api/users", authRoutes);
 
 
 mongoose
