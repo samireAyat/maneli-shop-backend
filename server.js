@@ -11,6 +11,11 @@ import favoriteRoutes from "./routes/favoriteRoutes.js";
 
 
 dotenv.config();
+console.log("Mongo URI exists:", !!process.env.MONGO_URI);
+console.log(
+  "Mongo username:",
+  process.env.MONGO_URI?.split("://")[1]?.split(":")[0]
+);
 
 const app = express();
 app.use(

@@ -110,6 +110,55 @@ router.post("/", upload.any(), async (req, res) => {
   }
 });
 
+router.get("/search", async (req, res) => {
+  try {
+    const q = req.query.q?.toString().trim();
+
+    if (!q) {
+      return res.json([]);
+    }
+
+    const products = await Product.find({
+      $or: [
+        {
+          Name: {
+            $regex: q,
+            $options: "i"
+          }
+        },
+        {
+          Description: {
+            $regex: q,
+            $options: "i"
+          }
+        },
+        {
+          Category: {
+            $regex: q,
+            $options: "i"
+          }
+        },
+        {
+          "Variants.Color": {
+            $regex: q,
+            $options: "i"
+          }
+        }
+      ]
+    }).limit(10);
+
+    res.json(products);
+
+  } catch (error) {
+    console.error("Search products error:", error);
+
+    res.status(500).json({
+      message: "خطا در جستجوی محصولات",
+      error: error.message
+    });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -129,93 +178,70 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.put(
-  "/:id",
-  upload.any(),
-  async (req, res) => {
-    try {
-      const product = await Product.findById(req.params.id);
+router.put("/:id", upload.any(), async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
 
-      if (!product) {
-        return res.status(404).json({
-          message: "محصول پیدا نشد",
-        });
-      }
+    if (!product) {
+      return res.status(404).json({
+        message: "محصول پیدا نشد",
+      });
+    }
 
-      // =========================
-      // اطلاعات اصلی محصول
-      // =========================
+    // =========================
+    // اطلاعات اصلی محصول
+    // =========================
 
-      product.Name = req.body.Name;
-      product.Price = Number(req.body.Price);
-      product.Description = req.body.Description ?? "";
-      product.Category = req.body.Category ?? "";
+    product.Name = req.body.Name;
+    product.Price = Number(req.body.Price);
+    product.Description = req.body.Description ?? "";
+    product.Category = req.body.Category ?? "";
 
-      // =========================
-      // Variants
-      // =========================
+    // =========================
+    // Variants
+    // =========================
 
-      const variants = req.body.Variants
-        ? JSON.parse(req.body.Variants)
+    const variants = req.body.Variants ? JSON.parse(req.body.Variants) : [];
+
+    // =========================
+    // فایل‌های جدید
+    // =========================
+
+    const files = req.files ?? [];
+
+    variants.forEach((variant, variantIndex) => {
+      // فایل‌های جدید این Variant
+      const newImages = files
+        .filter((file) => file.fieldname === `variantImages_${variantIndex}`)
+        .map((file) => `/uploads/products/${file.filename}`);
+
+      // تصاویر قبلی که از فرانت ارسال شده‌اند
+      const existingImages = Array.isArray(variant.Images)
+        ? variant.Images
         : [];
 
-      // =========================
-      // فایل‌های جدید
-      // =========================
+      // ترکیب تصاویر قبلی + جدید
+      variant.Images = [...existingImages, ...newImages];
+    });
 
-      const files = req.files ?? [];
+    // =========================
+    // ذخیره Variants
+    // =========================
 
-      variants.forEach((variant, variantIndex) => {
+    product.Variants = variants;
 
-        // فایل‌های جدید این Variant
-        const newImages = files
-          .filter(
-            file =>
-              file.fieldname === `variantImages_${variantIndex}`
-          )
-          .map(
-            file =>
-              `/uploads/products/${file.filename}`
-          );
+    await product.save();
 
-        // تصاویر قبلی که از فرانت ارسال شده‌اند
-        const existingImages =
-          Array.isArray(variant.Images)
-            ? variant.Images
-            : [];
+    res.json(product);
+  } catch (error) {
+    console.error("Update product error:", error);
 
-        // ترکیب تصاویر قبلی + جدید
-        variant.Images = [
-          ...existingImages,
-          ...newImages
-        ];
-      });
-
-      // =========================
-      // ذخیره Variants
-      // =========================
-
-      product.Variants = variants;
-
-      await product.save();
-
-      res.json(product);
-
-    } catch (error) {
-
-      console.error(
-        "Update product error:",
-        error
-      );
-
-      res.status(400).json({
-        message: "خطا در ویرایش محصول",
-        error: error.message,
-      });
-
-    }
+    res.status(400).json({
+      message: "خطا در ویرایش محصول",
+      error: error.message,
+    });
   }
-);
+});
 
 router.delete("/:id", async (req, res) => {
   try {
