@@ -1,44 +1,53 @@
 import mongoose from "mongoose";
 
-const productSizeSchema = new mongoose.Schema(
-  {
-
-    Name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    Stock: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
+const productSizeSchema = new mongoose.Schema({
+  Name: {
+    type: String,
+    required: true,
+    trim: true,
   },
-);
 
-
-const productVariantSchema = new mongoose.Schema(
-  {
-
-    Color: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    Images: {
-      type: [String],
-      default: [],
-    },
-
-    Sizes: {
-      type: [productSizeSchema],
-      default: [],
-    },
+  Stock: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
-);
+  ChestWidth: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
 
+  DressLength: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+
+  SleeveLength: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+});
+
+const productVariantSchema = new mongoose.Schema({
+  Color: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+
+  Images: {
+    type: [String],
+    default: [],
+  },
+
+  Sizes: {
+    type: [productSizeSchema],
+    default: [],
+  },
+});
 
 const productSchema = new mongoose.Schema(
   {
@@ -70,9 +79,8 @@ const productSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
-
 
 const Product = mongoose.model("Product", productSchema);
 

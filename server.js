@@ -8,6 +8,7 @@ import cors from "cors";
 import cartRoutes from "./routes/cartRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
 import favoriteRoutes from "./routes/favoriteRoutes.js";
+import orderRoutes from  "./routes/orderRoutes.js"
 
 
 dotenv.config();
@@ -35,6 +36,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/favorite", favoriteRoutes);
 app.use("/api/users", authRoutes);
+app.use("/api/orders", orderRoutes);
 
 
 mongoose

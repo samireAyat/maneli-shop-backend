@@ -2,6 +2,7 @@ import express from "express";
 import Cart from "../models/CartItem.js";
 import Product from "../models/Product.js";
 import authMiddleware from "../middleware/auth.middleware.js";
+import { clearCart } from "../controllers/cartController.js"
 
 const router = express.Router();
 
@@ -465,5 +466,7 @@ router.delete("/items", authMiddleware, async (req, res) => {
     });
   }
 });
+
+router.delete("/", authMiddleware, clearCart);
 
 export default router;
